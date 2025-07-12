@@ -152,7 +152,7 @@ def summarize_and_extract_deadline_with_llm(email_body):
     Uses a placeholder LLM API to summarize email content and extract a deadline.
     Returns a summary, a boolean indicating if a deadline was found, and the deadline string.
     """
-    prompt = f"""
+    prompt = f"
     Please perform the following tasks on the email content below:
 
     1.  Summarize the email in a maximum of 2 concise lines.
@@ -168,7 +168,7 @@ def summarize_and_extract_deadline_with_llm(email_body):
     Summary: [Your 2-line summary here]
     Deadline_Present: [yes/no]
     Deadline: [YYYY-MM-DD HH:MM:SS or None]
-    """
+    "
 
     # This is a mock API call. Replace with your actual implementation.
     # In a real scenario, you would parse the response from the LLM.
