@@ -55,7 +55,7 @@ IMAP_SERVER = "imap.gmail.com"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_ACCOUNT = "calendarwaala@gmail.com"
-APP_PASSWORD = "kygzobmaghbmbskc" # Use the App Password you generated
+APP_PASSWORD = "" # Use the App Password you generated
 
 # --- LLM API Configuration ---
 # Replace with your actual LLM API endpoint and key
