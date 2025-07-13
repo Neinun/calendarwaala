@@ -259,7 +259,7 @@ def send_reply(sender, subject, summary, deadline_detected, ics_file_path=None):
     """
     # Extract just the email address from the sender string
     recipient_email = email.utils.parseaddr(sender)[1]
-    
+    print(f"recipient email: {sender}")
     if not recipient_email:
         print(f"Could not parse recipient email from: {sender}")
         return
@@ -275,7 +275,7 @@ def send_reply(sender, subject, summary, deadline_detected, ics_file_path=None):
         body += "I've also attached a calendar event for the deadline mentioned. You can click on it to add it to your calendar.\n\n"
     else:
         body += "No specific deadline was detected in this email.\n\n"
-    body += "Best regards,\nYour Email Bot"
+    body += "Best regards,\nCalendarWaala"
     
     msg.attach(MIMEText(body, 'plain'))
 
@@ -339,7 +339,7 @@ def main():
             if has_deadline:
                 ics_file = create_ics_file(deadline_str, subject)
             
-            #send_reply(sender, subject, summary, has_deadline, ics_file)
+            send_reply(sender, subject, summary, has_deadline, ics_file)
 
             # Clean up the created ICS file
             
