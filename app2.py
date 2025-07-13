@@ -49,18 +49,21 @@ import os
 import time
 import requests # Used for making requests to the LLM API
 
+import google.generativeai as genai
+from google.generativeai import types
+
 # --- CONFIGURATION ---
 # Enter your Gmail credentials and settings here
 IMAP_SERVER = "imap.gmail.com"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_ACCOUNT = "calendarwaala@gmail.com"
-APP_PASSWORD = "" # Use the App Password you generated
+APP_PASSWORD = os.environ["APP_PASSWORD"] 
+
+# Use the App Password you generated
 
 # --- LLM API Configuration ---
-# Replace with your actual LLM API endpoint and key
-LLM_API_URL = "YOUR_LLM_API_ENDPOINT"
-LLM_API_KEY = "YOUR_LLM_API_KEY"
+LLM_API_KEY = os.environ["GOOGLE_API_KEY"]
 
 
 def check_for_new_emails():
@@ -146,13 +149,22 @@ def get_email_content(msg):
             
     return subject, sender, body
 
+def query_gemini(prompt_text):
+    try:
+        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        print("Sending prompt to Gemini...")
+        response = model.generate_content(prompt_text)
+        return response.text
+
+    except Exception as e:
+        # Handle potential exceptions, such as authentication errors or network issues.
+        return f"An error occurred: {e}"
+
 
 def summarize_and_extract_deadline_with_llm(email_body):
-    """
-    Uses a placeholder LLM API to summarize email content and extract a deadline.
-    Returns a summary, a boolean indicating if a deadline was found, and the deadline string.
-    """
-    prompt = f"
+
+    prompt = f"""
     Please perform the following tasks on the email content below:
 
     1.  Summarize the email in a maximum of 2 concise lines.
@@ -165,34 +177,46 @@ def summarize_and_extract_deadline_with_llm(email_body):
     ---
 
     Provide the output in the following format, with each item on a new line:
-    Summary: [Your 2-line summary here]
-    Deadline_Present: [yes/no]
-    Deadline: [YYYY-MM-DD HH:MM:SS or None]
-    "
+    Summary= [Your 2-line summary here]
+    Deadline_Present= [yes/no]
+    Deadline= [YYYY-MM-DD HH:MM:SS or None]
+    """
 
-    # This is a mock API call. Replace with your actual implementation.
-    # In a real scenario, you would parse the response from the LLM.
-    
-    # --- MOCK RESPONSE (for testing without a real API) ---
-    
-    print("\n--- MOCKING LLM RESPONSE ---")
-    summary = "This is a mock summary. The project deadline has been set and your feedback is required."
-    has_deadline = False
-    deadline_str = "None"
-    
-    if "deadline" in email_body.lower() or "due by" in email_body.lower():
-        # Simple regex to find a date for demonstration
-        match = re.search(r'\d{4}-\d{2}-\d{2}', email_body)
-        if match:
-            deadline_str = f"{match.group(0)} 17:00:00" # Assume 5 PM if time not specified
-            has_deadline = True
+    print(f"Prompt: {prompt}")
+
+    try:
+        response_text = query_gemini(prompt)
+        print(response_text)
+        response_lines = response_text.strip().split('\n')
+        response_dict = {}
+        for line in response_lines:
+            if '=' in line:
+                key, value = line.split('=', 1)
+                response_dict[key.strip()] = value.strip()
+
+        for key, value in response_dict.items():
+            print(f"Key: {key} | Value: {value}")
+
+        summary = "Could not parse summary."
+        has_deadline = False
+        deadline_str = "None"
+
+        if "Deadline_Present" in response_dict:
+            summary = response_dict.get("Summary", summary)
+            deadline_present_response = response_dict["Deadline_Present"].lower()
+            has_deadline = deadline_present_response == 'yes'
+            deadline_str = response_dict.get("Deadline", "None")
             
-    print(f"Extracted Summary: {summary}")
-    print(f"Deadline Present: {'yes' if has_deadline else 'no'}")
-    print(f"Extracted Deadline: {deadline_str}")
-    # --- END MOCK ---
+            # Ensure deadline is "None" if not present
+            if not has_deadline:
+                deadline_str = "None"
 
-    return summary, has_deadline, deadline_str
+        return summary, has_deadline, deadline_str
+    
+    except Exception as e:
+        print(f"An error occurred while communicating with the LLM: {e}")
+        return None, None, None
+
 
 
 def create_ics_file(deadline_str, subject):
@@ -288,6 +312,8 @@ def main():
             print("\n-----------------------------------")
             print(f"Processing email from: {sender}")
             print(f"Subject: {subject}")
+            print(f"Body: {body}")
+
             
             if not body:
                 print("Email body is empty or could not be parsed. Skipping.")
@@ -295,6 +321,15 @@ def main():
 
             summary, has_deadline, deadline_str = summarize_and_extract_deadline_with_llm(body)
             
+            print("\n----")
+            print(summary)
+            print("\n----")
+            print(has_deadline)
+            print("\n----")
+            print(deadline_str)
+
+
+            '''
             ics_file = None
             if has_deadline:
                 ics_file = create_ics_file(deadline_str, subject)
@@ -304,11 +339,15 @@ def main():
             # Clean up the created ICS file
             if ics_file and os.path.exists(ics_file):
                 os.remove(ics_file)
+            '''
         
         # Wait for a specified time before checking for new emails again
+        
         sleep_interval = 60 # in seconds
         print(f"\nWaiting for {sleep_interval} seconds before checking again...")
         time.sleep(sleep_interval)
+
+        
 
 
 if __name__ == "__main__":
@@ -319,4 +358,5 @@ if __name__ == "__main__":
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     else:
         main()
+
 
