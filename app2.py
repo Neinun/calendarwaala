@@ -1,38 +1,3 @@
-# this file has all the logic
-
-# Email Automation with AI Summarization and Calendar Events
-#
-# This script connects to a Gmail account, fetches unread emails,
-# summarizes their content using a placeholder for a Large Language Model (LLM),
-# extracts deadlines to create an ICS calendar file, and sends a reply
-# with the summary and the ICS file.
-#
-# Author: Gemini
-#
-#-----------------------------------------------------------------------
-#
-# REQUIREMENTS:
-#
-# pip install imapclient ics requests
-#
-#-----------------------------------------------------------------------
-#
-# GMAIL SETUP:
-#
-# 1. Enable IMAP in your Gmail settings:
-#    - Go to Gmail -> Settings -> See all settings -> Forwarding and POP/IMAP.
-#    - In the "IMAP access" section, select "Enable IMAP".
-#
-# 2. Create an App Password for your Gmail account:
-#    - Go to your Google Account settings: https://myaccount.google.com/
-#    - Go to Security.
-#    - Under "Signing in to Google," select "2-Step Verification" and follow the steps.
-#      (You MUST have 2-Step Verification enabled to use App Passwords).
-#    - Go back to the Security page, and select "App passwords".
-#    - Under "Select app," choose "Other (Custom name)" and give it a name (e.g., "Python Email Bot").
-#    - Google will generate a 16-character password. Use this password in the script, NOT your regular Gmail password.
-#
-#-----------------------------------------------------------------------
 
 import imaplib
 import email
@@ -43,6 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from ics import Calendar, Event
+import pytz
 import datetime
 import re
 import os
@@ -229,7 +195,11 @@ def create_ics_file(deadline_str, subject):
     Creates an .ics calendar file for the given deadline.
     """
     try:
-        deadline_dt = datetime.datetime.strptime(deadline_str, '%Y-%m-%d %H:%M:%S')
+        deadline_dt_utc = datetime.datetime.strptime(deadline_str, '%Y-%m-%d %H:%M:%S')
+        ist_tz = pytz.timezone('Asia/Kolkata')
+        deadline_dt = ist_tz.localize(deadline_dt_utc)
+
+
         print(f"deadline Date and time: {deadline_dt}")
         c = Calendar()
         e = Event()
