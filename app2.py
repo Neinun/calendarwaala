@@ -65,6 +65,9 @@ APP_PASSWORD = os.environ["APP_PASSWORD"]
 # --- LLM API Configuration ---
 LLM_API_KEY = os.environ["GOOGLE_API_KEY"]
 
+# -- file path to store ics files on the server
+ICS_FILE_PATH = os.environ["ICS_FILE_PATH"]
+
 
 def check_for_new_emails():
     """
@@ -182,7 +185,7 @@ def summarize_and_extract_deadline_with_llm(email_body):
     Deadline= [YYYY-MM-DD HH:MM:SS or None]
     """
 
-    print(f"Prompt: {prompt}")
+    #print(f"Prompt: {prompt}")
 
     try:
         response_text = query_gemini(prompt)
@@ -194,8 +197,10 @@ def summarize_and_extract_deadline_with_llm(email_body):
                 key, value = line.split('=', 1)
                 response_dict[key.strip()] = value.strip()
 
+        '''
         for key, value in response_dict.items():
             print(f"Key: {key} | Value: {value}")
+        '''
 
         summary = "Could not parse summary."
         has_deadline = False
@@ -225,7 +230,7 @@ def create_ics_file(deadline_str, subject):
     """
     try:
         deadline_dt = datetime.datetime.strptime(deadline_str, '%Y-%m-%d %H:%M:%S')
-        
+        print(f"deadline Date and time: {deadline_dt}")
         c = Calendar()
         e = Event()
         
@@ -237,11 +242,12 @@ def create_ics_file(deadline_str, subject):
         
         c.events.add(e)
         
-        ics_filename = "event.ics"
+        ics_filename = os.path.join(ICS_FILE_PATH,"event.ics")
         with open(ics_filename, 'w') as f:
             f.writelines(c)
             
         return ics_filename
+    
     except Exception as e:
         print(f"Error creating ICS file: {e}")
         return None
@@ -312,7 +318,7 @@ def main():
             print("\n-----------------------------------")
             print(f"Processing email from: {sender}")
             print(f"Subject: {subject}")
-            print(f"Body: {body}")
+            # print(f"Body: {body}")
 
             
             if not body:
@@ -320,26 +326,27 @@ def main():
                 continue
 
             summary, has_deadline, deadline_str = summarize_and_extract_deadline_with_llm(body)
-            
+            '''
             print("\n----")
             print(summary)
             print("\n----")
             print(has_deadline)
             print("\n----")
             print(deadline_str)
-
-
             '''
+
             ics_file = None
             if has_deadline:
                 ics_file = create_ics_file(deadline_str, subject)
             
-            send_reply(sender, subject, summary, has_deadline, ics_file)
+            #send_reply(sender, subject, summary, has_deadline, ics_file)
 
             # Clean up the created ICS file
+            
             if ics_file and os.path.exists(ics_file):
-                os.remove(ics_file)
-            '''
+                print("file created")
+                #os.remove(ics_file)
+            
         
         # Wait for a specified time before checking for new emails again
         
